@@ -1,0 +1,8 @@
+# Don't include these in AI context
+node_modules/
+dist/
+build/
+.firebase/
+*.log
+.DS_Store
+

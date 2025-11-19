@@ -1,0 +1,66 @@
+{
+  "name": "virtual-budtender",
+  "version": "1.0.0",
+  "description": "Cannabis Healing Virtual Budtender - Flight Club",
+  "type": "module",
+  "main": "dist/virtual-budtender.umd.js",
+  "module": "dist/virtual-budtender.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/virtual-budtender.es.js",
+      "require": "./dist/virtual-budtender.umd.js"
+    },
+    "./styles.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LIBRARY_USAGE.md"
+  ],
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:lib": "vite build --config vite.config.lib.js",
+    "preview": "vite preview",
+    "server": "node backend/server.js",
+    "import-csv": "node scripts/importCatalog.js",
+    "import-ch": "node scripts/importCatalog.js ch",
+    "debug-products": "node scripts/debugProducts.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "firebase-admin": "^12.0.0",
+    "dotenv": "^16.4.5",
+    "openai": "^4.28.0",
+    "csv-parse": "^5.5.5"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.2.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/virtual-budtender.git"
+  },
+  "keywords": [
+    "react",
+    "widget",
+    "chatbot",
+    "budtender",
+    "cannabis",
+    "ai"
+  ]
+}
+

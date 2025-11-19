@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Widget-specific styles - only what's needed for the embedded widget */
+
+/* Custom scrollbar for chat panel */
+.chat-panel-container ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-panel-container ::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.chat-panel-container ::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #F7D940, #F7D940);
+  border-radius: 10px;
+}
+
+.chat-panel-container ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #F7D940, #F7D940);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Custom utilities */
+@layer utilities {
+  .border-l-3 {
+    border-left-width: 3px;
+  }
+}
+
+/* Ensure widget has consistent font */
+.virtual-budtender-widget {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
