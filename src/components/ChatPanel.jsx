@@ -365,7 +365,7 @@ function ChatPanel({ onClose, tenantId = 'ch', config = null }) {
             onKeyPress={handleKeyPress}
             placeholder="Ask me anything..."
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ch-gold/50 focus:border-ch-gold transition-all disabled:opacity-50"
+            className="text-black flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ch-gold/50 focus:border-ch-gold transition-all disabled:opacity-50"
           />
           <button
             onClick={handleSendMessage}
