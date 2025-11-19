@@ -9,6 +9,7 @@ A virtual budtender widget for Cannabis Healing's website that provides personal
 - **Real Inventory**: Syncs with Dutchie CSV exports
 - **Modern UI**: Clean, branded chat interface with Flight Club aesthetic
 - **Embeddable**: Can be installed as a React component in any React application
+- **Session Memory**: Conversations persist when closing/reopening the widget (resets on page refresh)
 
 ## Two Ways to Use This
 

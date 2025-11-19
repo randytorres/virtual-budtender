@@ -21,7 +21,7 @@ const defaultConfig = {
   greeting: "Welcome to Flight Club! I'm your virtual budtender. 🌿\n\nI can help you find the perfect products based on what you're looking for. Just tell me what you need!\n\n(Psst... we refresh our menu nightly, so some items might fly off the shelves before we update! 🚀)"
 };
 
-function ChatPanel({ onClose, tenantId = 'ch', config = null }) {
+function ChatPanel({ isOpen = true, onClose, tenantId = 'ch', config = null }) {
   const widgetConfig = config || defaultConfig;
   
   const [inputValue, setInputValue] = useState('');
@@ -41,7 +41,7 @@ function ChatPanel({ onClose, tenantId = 'ch', config = null }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   };
 
-  // Initialize with greeting (only once)
+  // Initialize with greeting (only once per session, not on every open/close)
   useEffect(() => {
     if (!initializedRef.current) {
       initializedRef.current = true;
@@ -54,6 +54,14 @@ function ChatPanel({ onClose, tenantId = 'ch', config = null }) {
       ]);
     }
   }, [widgetConfig.greeting]);
+
+  // Focus input when panel opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      // Small delay to ensure panel is visible before focusing
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     // Smart scroll logic
@@ -228,7 +236,7 @@ function ChatPanel({ onClose, tenantId = 'ch', config = null }) {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 w-[400px] max-w-[calc(100vw-2rem)] sm:w-[420px] h-[650px] max-h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-2xl flex flex-col z-40 overflow-hidden border border-ch-gold/30">
+    <div className={`fixed bottom-4 right-4 w-[400px] max-w-[calc(100vw-2rem)] sm:w-[420px] h-[650px] max-h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-2xl flex flex-col z-40 overflow-hidden border border-ch-gold/30 transition-all duration-300 ${isOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-full pointer-events-none'}`}>
       {/* Header */}
       <div className="bg-gradient-to-br from-ch-gold via-ch-gold-light to-ch-gold text-ch-black px-5 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">

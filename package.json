@@ -1,7 +1,7 @@
 {
   "name": "virtual-budtender",
-  "version": "1.0.0",
-  "description": "Cannabis Healing Virtual Budtender - Flight Club",
+  "version": "1.0.1",
+  "description": "Cannabis Healing Virtual Budtender - Flight Club with Session Memory",
   "type": "module",
   "main": "./src/lib/index.js",
   "module": "./src/lib/index.js",
