@@ -147,8 +147,9 @@ app.post('/recommend', async (req, res) => {
       candidates = [...lowToMidTHC, ...highTHC]; // Put high THC at the end
     }
 
-    // Limit to top 20 candidates for LLM
-    candidates = candidates.slice(0, 20);
+    // Send all candidates to LLM (no limit - GPT-4o-mini is cheap!)
+    // With GPT-4o-mini at $0.15/1M tokens, even 100 products costs <$0.002 per request
+    // candidates = candidates.slice(0, 20); // OLD LIMIT - REMOVED
 
     if (candidates.length === 0) {
       // Absolute fallback - just show any products
@@ -158,9 +159,21 @@ app.post('/recommend', async (req, res) => {
 
     console.log(`🤖 Sending ${candidates.length} candidates to LLM`);
 
-    // Prepare product list for LLM
+    // Prepare product list for LLM with comprehensive info
     const productList = candidates.map((p, idx) => {
-      return `${idx + 1}. id: "${p.id}", name: "${p.name}", brand: "${p.brand}", category: "${p.category}", price: $${p.price}, thcPercent: ${p.thcPercent || 'N/A'}%, strain: "${p.strain || 'N/A'}"`;
+      let productInfo = `${idx + 1}. id:"${p.id}", name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}`;
+      
+      // Add cannabinoid info
+      if (p.thcPercent) productInfo += `, thc:${p.thcPercent}%`;
+      if (p.cbdPercent) productInfo += `, cbd:${p.cbdPercent}%`;
+      
+      // Add strain info
+      if (p.strain && p.strain !== 'N/A') productInfo += `, strain:"${p.strain}"`;
+      
+      // Add type if available
+      if (p.type) productInfo += `, type:"${p.type}"`;
+      
+      return productInfo;
     }).join('\n');
 
     // Build LLM prompt using tenant's system prompt
@@ -269,23 +282,24 @@ app.post('/chat', async (req, res) => {
     });
     console.log(`📊 All categories:`, allCategoryCount);
 
-    // Select products ensuring variety across categories (10 from each major category)
-    // Note: Categories are now raw from CSV (e.g., "Cartridge 1000mg", "Pre-Rolls", "Flower", "Edibles")
+    // Send ALL products to AI - no limits!
+    // With GPT-4o-mini at $0.15/1M input tokens, even 100 products only costs ~$0.0015 per request
+    // This provides better recommendations and covers the full inventory
     const categorizedProducts = {
-      flower: allProducts.filter(p => p.category?.toLowerCase().includes('flower')).slice(0, 15),
-      preroll: allProducts.filter(p => p.category?.toLowerCase().includes('roll')).slice(0, 10),
+      flower: allProducts.filter(p => p.category?.toLowerCase().includes('flower')),
+      preroll: allProducts.filter(p => p.category?.toLowerCase().includes('roll')),
       vape: allProducts.filter(p => 
         p.category?.toLowerCase().includes('cartridge') ||
         p.category?.toLowerCase().includes('vape')
-      ).slice(0, 10),
-      edible: allProducts.filter(p => p.category?.toLowerCase().includes('edible')).slice(0, 10),
+      ),
+      edible: allProducts.filter(p => p.category?.toLowerCase().includes('edible')),
       concentrate: allProducts.filter(p => 
         p.category?.toLowerCase().includes('concentrate') ||
         p.category?.toLowerCase().includes('rosin')
-      ).slice(0, 5)
+      )
     };
 
-    // Combine all selected products
+    // Use ALL products - no slice() limits
     const selectedProducts = [
       ...categorizedProducts.flower,
       ...categorizedProducts.preroll,
@@ -301,14 +315,23 @@ app.post('/chat', async (req, res) => {
     console.log(`   Edibles: ${categorizedProducts.edible.length}`);
     console.log(`   Concentrates: ${categorizedProducts.concentrate.length}`);
 
-    // Log vapes specifically
-    if (categorizedProducts.vape.length > 0) {
-      console.log(`🔍 Vape products:`);
-      categorizedProducts.vape.forEach(v => console.log(`   - ${v.name} ($${v.price}) - ID: ${v.id}`));
-    }
+
 
     const productListForContext = selectedProducts.map((p, idx) => {
-      return `${idx + 1}. id:"${p.id}", name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}, thc:${p.thcPercent || 'N/A'}%, strain:"${p.strain || 'N/A'}"`;
+      // Build a comprehensive product description for AI context
+      let productInfo = `${idx + 1}. id:"${p.id}", name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}`;
+      
+      // Add cannabinoid info (critical for recommendations)
+      if (p.thcPercent) productInfo += `, thc:${p.thcPercent}%`;
+      if (p.cbdPercent) productInfo += `, cbd:${p.cbdPercent}%`;
+      
+      // Add strain info (helps AI understand effects)
+      if (p.strain && p.strain !== 'N/A') productInfo += `, strain:"${p.strain}"`;
+      
+      // Add type if available (indica/sativa/hybrid)
+      if (p.type) productInfo += `, type:"${p.type}"`;
+      
+      return productInfo;
     }).join('\n');
 
     // Build system prompt for conversational AI

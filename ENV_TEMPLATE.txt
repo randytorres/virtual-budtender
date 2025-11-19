@@ -1,0 +1,18 @@
+# Virtual Budtender Environment Variables Template
+# Copy this to .env and fill in your actual values
+
+# OpenAI Configuration
+OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# Firebase Configuration  
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account@project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour\nPrivate\nKey\nHere\n-----END PRIVATE KEY-----"
+
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# CORS (Optional - for production)
+# ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+
