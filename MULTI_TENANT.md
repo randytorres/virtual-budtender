@@ -38,12 +38,12 @@ export const tenantConfigs = {
   ch: {
     name: 'Cannabis Healing',
     displayName: 'Flight Club',
-    tone: 'friendly street-lux',
+    tone: 'friendly, street, luxury, high end, street-lux, premium',
     colors: {
       primary: '#D4AF37',
       primaryLight: '#E5C158',
     },
-    menuUrl: 'https://cannabishealing.com/menu',
+    menuUrl: 'https://cannabishealingllc.com/shop',
     systemPrompt: '...',
   },
   

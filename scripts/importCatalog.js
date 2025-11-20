@@ -160,7 +160,7 @@ function normalizeProduct(row, tenantId) {
 
   // Generate Dutchie shop URL if we found a matching slug
   const dutchieUrl = dutchieSlug 
-    ? `https://cannabishealing.com/shop?dtche[poscid]=${dutchieSlug}`
+    ? `https://graceful-rugelach-7224de.netlify.app/shop?dtche[poscid]=${dutchieSlug}`
     : null;
 
   return {

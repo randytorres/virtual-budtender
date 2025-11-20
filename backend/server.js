@@ -73,7 +73,6 @@ app.post('/recommend', async (req, res) => {
     }
     
     const tenantConfig = getTenantConfig(tenantId);
-    console.log(`🤔 Received recommendation request for ${tenantConfig.name}:`, answers);
 
     // Build Firestore query with tenant filter (simplified to avoid index requirements)
     const query = db.collection('products')
@@ -332,9 +331,6 @@ app.post('/chat', async (req, res) => {
 
 
     // Log first few product IDs for debugging
-    if (selectedProducts.length > 0) {
-      console.log(`🆔 Sample product IDs in prompt:`, selectedProducts.slice(0, 10).map(p => `${p.id} (${p.name.substring(0, 30)}...)`));
-    }
 
     // Create indexed product list - AI will return numbers instead of IDs (much more reliable!)
     const productListForContext = selectedProducts.map((p, idx) => {
@@ -479,14 +475,11 @@ Message: "${message}"`;
     });
 
     const llmResponse = JSON.parse(completion.choices[0].message.content);
-    console.log('✅ Chat response:', llmResponse.message);
 
     // If there are recommendations, enrich them with product data
     let enrichedRecommendations = [];
     if (llmResponse.recommendations && llmResponse.recommendations.length > 0) {
       console.log(`🎯 Enriching ${llmResponse.recommendations.length} recommendations`);
-      console.log(`🔍 Looking for product numbers:`, llmResponse.recommendations.map(r => r.productNumber));
-      
       // Quick validation: check if numbers are in valid range
       const invalidNumbers = llmResponse.recommendations.filter(rec => 
         !rec.productNumber || rec.productNumber < 1 || rec.productNumber > selectedProducts.length

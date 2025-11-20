@@ -30,14 +30,14 @@ function ProductCard({ recommendation }) {
     }
 
     // Otherwise, create a fallback URL
-    const baseUrl = 'https://cannabishealing.com';
+    const baseUrl = 'https://graceful-rugelach-7224de.netlify.app/shop';
     
     // Try category-based URL (most specific)
     if (product.category) {
       const category = product.category.toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
-      return `${baseUrl}/products?category=${encodeURIComponent(product.category)}`;
+      return `${baseUrl}/products?category=${encodeURIComponent(category)}`;
     }
     
     // Try brand-based URL
