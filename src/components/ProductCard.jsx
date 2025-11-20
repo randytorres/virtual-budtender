@@ -31,7 +31,7 @@ function ProductCard({ recommendation }) {
 
     // Otherwise, create a fallback URL using Dutchie's official URL format
     // See: https://docs.dutchie.com/dutchie-core-docs/embedded-menu/menus-and-carousels
-    const baseUrl = 'https://cannabishealing.com/shop';
+    const baseUrl = import.meta.env.VITE_DUTCHIE_MENU_URL || 'https://graceful-rugelach-7224de.netlify.app/shop';
     
     // Try category-based URL (most specific)
     // Dutchie uses uppercase category names: FLOWER, PRE_ROLLS, EDIBLES, etc.

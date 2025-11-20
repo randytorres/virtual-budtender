@@ -159,8 +159,10 @@ function normalizeProduct(row, tenantId) {
   const sku = row['SKU'] || row['Package ID'];
 
   // Generate Dutchie shop URL if we found a matching slug
+  // Format per Dutchie docs: https://docs.dutchie.com/dutchie-core-docs/embedded-menu/menus-and-carousels
+  const dutchieMenuUrl = process.env.DUTCHIE_MENU_URL || 'https://graceful-rugelach-7224de.netlify.app/shop';
   const dutchieUrl = dutchieSlug 
-    ? `https://graceful-rugelach-7224de.netlify.app/shop?dtche[poscid]=${dutchieSlug}`
+    ? `${dutchieMenuUrl}?dtche[poscid]=${dutchieSlug}`
     : null;
 
   return {

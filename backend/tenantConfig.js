@@ -16,7 +16,7 @@ export const tenantConfigs = {
       secondary: '#1a1a1a',
       background: '#FFFFFF',
     },
-    menuUrl: 'https://graceful-rugelach-7224de.netlify.app/shop', // Update with real Dutchie URL
+    menuUrl: process.env.DUTCHIE_MENU_URL || 'https://graceful-rugelach-7224de.netlify.app/shop',
     systemPrompt: `You are the virtual budtender for Cannabis Healing, a premium dispensary. Your job is to recommend products from the inventory list provided.
 
 Rules:

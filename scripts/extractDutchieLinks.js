@@ -87,6 +87,7 @@ function extractDutchieLinks() {
       }
       
       if (productName) {
+        const dutchieMenuUrl = process.env.DUTCHIE_MENU_URL || 'https://graceful-rugelach-7224de.netlify.app/shop';
         products.push({
           name: productName,
           slug,
@@ -94,7 +95,7 @@ function extractDutchieLinks() {
           type,
           thc,
           price,
-          url: `https://cannabishealing.com/shop?dtche[poscid]=${slug}`
+          url: `${dutchieMenuUrl}?dtche[poscid]=${slug}`
         });
       }
     }

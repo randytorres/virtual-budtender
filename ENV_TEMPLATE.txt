@@ -13,6 +13,10 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour\nPrivate\nKey\nHere\n---
 PORT=3001
 NODE_ENV=development
 
+# Dutchie Menu URL (without trailing slash)
+DUTCHIE_MENU_URL=https://graceful-rugelach-7224de.netlify.app/shop
+VITE_DUTCHIE_MENU_URL=https://graceful-rugelach-7224de.netlify.app/shop
+
 # CORS (Optional - for production)
 # ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
