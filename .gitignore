@@ -43,3 +43,8 @@ lerna-debug.log*
 *~
 .tmp/
 
+# Generated files
+dutchie-links.json
+dutchie-links.csv
+links.md
+

@@ -22,6 +22,36 @@ function ProductCard({ recommendation }) {
     return '🌿';
   };
 
+  // Generate fallback URL if no direct product link
+  const getShopUrl = (product) => {
+    // If we have a direct product link, use it
+    if (product.dutchieUrl) {
+      return product.dutchieUrl;
+    }
+
+    // Otherwise, create a fallback URL
+    const baseUrl = 'https://cannabishealing.com';
+    
+    // Try category-based URL (most specific)
+    if (product.category) {
+      const category = product.category.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+      return `${baseUrl}/products?category=${encodeURIComponent(product.category)}`;
+    }
+    
+    // Try brand-based URL
+    if (product.brand) {
+      return `${baseUrl}/brands?search=${encodeURIComponent(product.brand)}`;
+    }
+    
+    // Final fallback - just go to products page
+    return `${baseUrl}/products`;
+  };
+
+  const shopUrl = getShopUrl(product);
+  const hasDirectLink = !!product.dutchieUrl;
+
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md hover:border-ch-gold/40 transition-all duration-200">
       {/* Horizontal Layout: Image Left, Content Right */}
@@ -85,18 +115,13 @@ function ProductCard({ recommendation }) {
       {/* Compact CTA Button */}
       <div className="px-3 pb-3">
         <a
-          href={product.dutchieUrl || '#'}
+          href={shopUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full text-center px-3 py-1.5 bg-white hover:bg-gradient-to-r hover:from-ch-gold/10 hover:to-ch-gold-light/10 text-gray-700 hover:text-ch-black text-xs font-medium rounded-lg transition-all duration-200 border border-gray-300 hover:border-ch-gold"
-          onClick={(e) => {
-            if (!product.dutchieUrl) {
-              e.preventDefault();
-              alert('Visit our menu to purchase this product!');
-            }
-          }}
+          title={hasDirectLink ? 'View this product' : `Browse ${product.category || product.brand || 'our menu'}`}
         >
-          View on Menu →
+          {hasDirectLink ? 'View on Menu →' : `Browse ${product.category || 'Menu'} →`}
         </a>
       </div>
     </div>

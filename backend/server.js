@@ -159,9 +159,10 @@ app.post('/recommend', async (req, res) => {
 
     console.log(`🤖 Sending ${candidates.length} candidates to LLM`);
 
-    // Prepare product list for LLM with comprehensive info
+    // Prepare product list for LLM - use numbers instead of IDs for reliability
     const productList = candidates.map((p, idx) => {
-      let productInfo = `${idx + 1}. id:"${p.id}", name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}`;
+      const productNumber = idx + 1;
+      let productInfo = `${productNumber}. name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}`;
       
       // Add cannabinoid info
       if (p.thcPercent) productInfo += `, thc:${p.thcPercent}%`;
@@ -195,7 +196,12 @@ Here are the available products:
 
 ${productList}
 
-Using ONLY these products, choose 2-4 that best match the customer. Be conversational and friendly. If they wanted a specific format but we don't have it, acknowledge that and explain why your recommendations are still great alternatives. Respond in valid JSON.`;
+Using ONLY these products, choose 2-4 that best match the customer. Be conversational and friendly. If they wanted a specific format but we don't have it, acknowledge that and explain why your recommendations are still great alternatives.
+
+IMPORTANT: Use the product NUMBER (1, 2, 3, etc.) not IDs. For example, if you want product "5. name:Cape Cod...", use productNumber: 5
+
+Respond in valid JSON format:
+{"message": "your message", "recommendations": [{"productNumber": 5, "reason": "why this fits"}]}`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',  // Cheaper and faster, supports JSON mode
@@ -209,12 +215,19 @@ Using ONLY these products, choose 2-4 that best match the customer. Be conversat
     const llmResponse = JSON.parse(completion.choices[0].message.content);
     console.log('✅ LLM response received:', llmResponse);
 
-    // Enrich recommendations with full product data
+    // Enrich recommendations with full product data using product numbers
     const enrichedRecommendations = llmResponse.recommendations.map(rec => {
-      const product = candidates.find(p => p.id === rec.id);
+      const productIndex = rec.productNumber - 1; // Convert 1-based to 0-based
+      
+      if (productIndex < 0 || productIndex >= candidates.length) {
+        console.error(`Invalid product number: ${rec.productNumber} (valid range: 1-${candidates.length})`);
+        return null;
+      }
+      
+      const product = candidates[productIndex];
       return {
         ...rec,
-        product: product ? {
+        product: {
           id: product.id,
           name: product.name,
           brand: product.brand,
@@ -223,9 +236,10 @@ Using ONLY these products, choose 2-4 that best match the customer. Be conversat
           imageUrl: product.imageUrl,
           category: product.category,
           strain: product.strain,
-        } : null
+          dutchieUrl: product.dutchieUrl || null,  // Shop link
+        }
       };
-    }).filter(rec => rec.product !== null);
+    }).filter(rec => rec !== null);
 
     res.json({
       message: llmResponse.message,
@@ -317,9 +331,16 @@ app.post('/chat', async (req, res) => {
 
 
 
+    // Log first few product IDs for debugging
+    if (selectedProducts.length > 0) {
+      console.log(`🆔 Sample product IDs in prompt:`, selectedProducts.slice(0, 10).map(p => `${p.id} (${p.name.substring(0, 30)}...)`));
+    }
+
+    // Create indexed product list - AI will return numbers instead of IDs (much more reliable!)
     const productListForContext = selectedProducts.map((p, idx) => {
-      // Build a comprehensive product description for AI context
-      let productInfo = `${idx + 1}. id:"${p.id}", name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}`;
+      // Use simple index number - AI is much better at copying numbers than long ID strings
+      const productNumber = idx + 1;
+      let productInfo = `${productNumber}. name:"${p.name}", brand:"${p.brand}", category:"${p.category}", price:$${p.price}`;
       
       // Add cannabinoid info (critical for recommendations)
       if (p.thcPercent) productInfo += `, thc:${p.thcPercent}%`;
@@ -353,13 +374,14 @@ CATEGORY MATCHING (actual categories from inventory):
 - "edibles" = category contains "Edible" (e.g., "Edibles")
 - "concentrates" = category contains "Concentrate" or "Rosin" (e.g., "Live Rosin", "Concentrate")
 
-CRITICAL - BE HONEST ABOUT INVENTORY:
+CRITICAL - PRODUCT NUMBERS AND INVENTORY:
 1. LOOK AT THE PRODUCT LIST ABOVE - those are the ONLY products available
-2. CHECK PRICES: If customer says "under $30", count how many products have price < 30
-3. CHECK CATEGORY: Count how many products match the category they want
-4. BE TRUTHFUL: If you don't have products matching their criteria, SAY SO
-5. DON'T HALLUCINATE: Never claim "I found X products under $30" unless you actually counted them in the list above
-6. If NO products match: Ask if they want to adjust budget or try a different category
+2. USE PRODUCT NUMBERS: Each product has a number (1, 2, 3, etc.) - use these numbers, NOT made-up IDs
+3. CHECK PRICES: If customer says "under $30", count how many products have price < 30
+4. CHECK CATEGORY: Count how many products match the category they want
+5. BE TRUTHFUL: If you don't have products matching their criteria, SAY SO
+6. DON'T HALLUCINATE: Never make up product numbers - use ONLY the numbers from 1 to ${selectedProducts.length}
+7. If NO products match: Ask if they want to adjust budget or try a different category
 
 EXAMPLES:
 
@@ -391,15 +413,27 @@ Response: {
 RESPONSE FORMAT (respond with valid JSON):
 {
   "message": "Your message here",
-  "recommendations": [{"id": "exact-product-id", "reason": "why this fits"}],
+  "recommendations": [{"productNumber": 5, "reason": "why this fits"}],
   "suggestedReplies": ["Option 1", "Option 2", "Option 3"]
 }
 
+IMPORTANT RULES FOR PRODUCT NUMBERS:
 - Include 4-6 products when recommending (UI shows 3 initially with "Show More")
-- Copy product IDs EXACTLY from the list above
+- Use the NUMBER from the list (e.g., if you want "1. name:Cape Cod...", use productNumber: 1)
+- ONLY use numbers from 1 to ${selectedProducts.length}
+- DO NOT make up numbers outside this range
+- DO NOT use product names or IDs - ONLY use the product NUMBER
 - Keep message concise and friendly
 - Only include suggestedReplies if asking a question or offering alternatives
-- Always respond in JSON format`;
+- Always respond in JSON format
+
+EXAMPLE:
+If you want to recommend products 5, 12, and 23 from the list:
+{"recommendations": [
+  {"productNumber": 5, "reason": "Great for sleep"},
+  {"productNumber": 12, "reason": "Budget friendly"},
+  {"productNumber": 23, "reason": "High THC"}
+]}`;
 
     // Prepare conversation for OpenAI
     const messages = [
@@ -451,32 +485,32 @@ Message: "${message}"`;
     let enrichedRecommendations = [];
     if (llmResponse.recommendations && llmResponse.recommendations.length > 0) {
       console.log(`🎯 Enriching ${llmResponse.recommendations.length} recommendations`);
-      console.log(`🔍 Looking for IDs:`, llmResponse.recommendations.map(r => r.id));
+      console.log(`🔍 Looking for product numbers:`, llmResponse.recommendations.map(r => r.productNumber));
+      
+      // Quick validation: check if numbers are in valid range
+      const invalidNumbers = llmResponse.recommendations.filter(rec => 
+        !rec.productNumber || rec.productNumber < 1 || rec.productNumber > selectedProducts.length
+      );
+      
+      if (invalidNumbers.length > 0) {
+        console.warn(`⚠️  AI returned ${invalidNumbers.length} invalid product numbers!`);
+        console.warn(`   Valid range: 1-${selectedProducts.length}`);
+      }
       
       enrichedRecommendations = llmResponse.recommendations
         .map(rec => {
-          // Search in all products, not just the sorted subset
-          let product = allProducts.find(p => p.id === rec.id);
+          // Use productNumber to index into selectedProducts array
+          const productIndex = rec.productNumber - 1; // Convert 1-based to 0-based
           
-          // If exact ID not found, try fuzzy matching by name
-          if (!product) {
-            console.warn(`⚠️  Product ID "${rec.id}" not found, trying name search...`);
-            const searchName = rec.id.toLowerCase().replace(/[^\w\s]/g, '');
-            product = allProducts.find(p => 
-              p.name.toLowerCase().replace(/[^\w\s]/g, '').includes(searchName) ||
-              searchName.includes(p.name.toLowerCase().replace(/[^\w\s]/g, ''))
-            );
-            
-            if (product) {
-              console.log(`   ✓ Found via fuzzy match: ${product.name} (ID: ${product.id})`);
-            } else {
-              console.error(`   ✗ Could not find product matching "${rec.id}"`);
-              return null;
-            }
+          if (productIndex < 0 || productIndex >= selectedProducts.length) {
+            console.error(`   ✗ Invalid product number: ${rec.productNumber} (valid range: 1-${selectedProducts.length})`);
+            return null;
           }
           
+          const product = selectedProducts[productIndex];
+          
           // Log the product for debugging
-          console.log(`   ✓ ${product.name} ($${product.price}, category: ${product.category})`);
+          console.log(`   ✓ #${rec.productNumber}: ${product.name} ($${product.price}, ${product.category})`);
           
           return {
             ...rec,

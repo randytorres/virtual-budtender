@@ -26,7 +26,8 @@
     "server": "node backend/server.js",
     "import-csv": "node scripts/importCatalog.js",
     "import-ch": "node scripts/importCatalog.js ch",
-    "debug-products": "node scripts/debugProducts.js"
+    "debug-products": "node scripts/debugProducts.js",
+    "extract-links": "node scripts/extractDutchieLinks.js"
   },
   "dependencies": {
     "express": "^4.18.2",

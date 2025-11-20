@@ -51,12 +51,12 @@ function BudtenderWidget({
       )}
 
       {/* Chat panel - always mounted but hidden when closed to preserve state */}
-      <ChatPanel 
+        <ChatPanel 
         isOpen={isOpen}
         onClose={() => handleToggle(false)} 
-        tenantId={tenantId}
-        config={widgetConfig}
-      />
+          tenantId={tenantId}
+          config={widgetConfig}
+        />
     </>
   );
 }
