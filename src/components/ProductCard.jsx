@@ -29,24 +29,50 @@ function ProductCard({ recommendation }) {
       return product.dutchieUrl;
     }
 
-    // Otherwise, create a fallback URL
-    const baseUrl = 'https://graceful-rugelach-7224de.netlify.app/shop';
+    // Otherwise, create a fallback URL using Dutchie's official URL format
+    // See: https://docs.dutchie.com/dutchie-core-docs/embedded-menu/menus-and-carousels
+    const baseUrl = 'https://cannabishealing.com/shop';
     
     // Try category-based URL (most specific)
+    // Dutchie uses uppercase category names: FLOWER, PRE_ROLLS, EDIBLES, etc.
     if (product.category) {
-      const category = product.category.toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
-      return `${baseUrl}/products?category=${encodeURIComponent(category)}`;
+      // Map common category names to Dutchie's format
+      const categoryMap = {
+        'flower': 'FLOWER',
+        'pre-rolls': 'PRE_ROLLS',
+        'pre-rolls-1g': 'PRE_ROLLS',
+        'prerolls': 'PRE_ROLLS',
+        'edibles': 'EDIBLES',
+        'concentrate': 'CONCENTRATES',
+        'concentrates': 'CONCENTRATES',
+        'live rosin': 'CONCENTRATES',
+        'cartridge 1000mg': 'VAPORIZERS',
+        'vape': 'VAPORIZERS',
+        'vapes': 'VAPORIZERS',
+        'tinctures': 'TINCTURES',
+        'tincture': 'TINCTURES',
+        'topicals': 'TOPICALS',
+        'blunt': 'PRE_ROLLS',
+        'blunt - 1.5g': 'PRE_ROLLS',
+        'cbd': 'CBD',
+        'accessories': 'ACCESSORIES',
+        'apparel': 'APPAREL',
+      };
+      
+      const categoryKey = product.category.toLowerCase();
+      const dutchieCategory = categoryMap[categoryKey] || 'FLOWER';
+      
+      // Use Dutchie's URL parameter format
+      return `${baseUrl}?dtche[category]=${dutchieCategory}`;
     }
     
     // Try brand-based URL
     if (product.brand) {
-      return `${baseUrl}/brands?search=${encodeURIComponent(product.brand)}`;
+      return `${baseUrl}?dtche[brand]=${encodeURIComponent(product.brand)}`;
     }
     
-    // Final fallback - just go to products page
-    return `${baseUrl}/products`;
+    // Final fallback - just go to menu page
+    return baseUrl;
   };
 
   const shopUrl = getShopUrl(product);
