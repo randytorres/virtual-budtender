@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ChatPanel from './ChatPanel';
+import CHLogo from '../CH-logo-emblem.svg';
 
 function BudtenderWidget({ 
   tenantId = 'ch', 
@@ -39,11 +40,11 @@ function BudtenderWidget({
       {showButton && !isOpen && (
         <button
           onClick={() => handleToggle(true)}
-          className="fixed bottom-4 right-4 z-50 bg-gradient-to-br from-ch-gold via-ch-gold-light to-ch-gold hover:shadow-2xl text-ch-black font-bold px-5 py-3 sm:px-6 sm:py-4 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 border border-ch-gold-light/50"
+          className="fixed bottom-4 right-4 z-50 bg-black hover:shadow-2xl text-ch-white font-bold px-5 py-3 sm:px-6 sm:py-4 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 border border-ch-gold-light/50"
           aria-label="Open virtual budtender"
         >
-          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <span className="text-xl sm:text-2xl">🌿</span>
+          <div className=" w-14 h-14 backdrop-blur-sm rounded-full flex items-center justify-center p-1.5">
+            <img src={CHLogo} alt="CH Logo" className="w-full h-full object-contain" />
           </div>
           <span className="hidden sm:inline text-sm">{widgetConfig.buttonText}</span>
           <span className="sm:hidden text-xs font-semibold">{widgetConfig.buttonTextMobile}</span>

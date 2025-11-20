@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ProductCard from './ProductCard';
+import CHLogo from '../CH-logo-emblem.svg';
 
 // Quick reply suggestions for common queries
 const QUICK_REPLIES = [
@@ -238,10 +239,10 @@ function ChatPanel({ isOpen = true, onClose, tenantId = 'ch', config = null }) {
   return (
     <div className={`fixed bottom-4 right-4 w-[400px] max-w-[calc(100vw-2rem)] sm:w-[420px] h-[650px] max-h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-2xl flex flex-col z-40 overflow-hidden border border-ch-gold/30 transition-all duration-300 ${isOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-full pointer-events-none'}`}>
       {/* Header */}
-      <div className="bg-gradient-to-br from-ch-gold via-ch-gold-light to-ch-gold text-ch-black px-5 py-4 flex items-center justify-between shadow-md">
+      <div className="bg-black text-white px-5 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <span className="text-xl">🌿</span>
+          <div className="bg-black w-14 h-14 backdrop-blur-sm rounded-full flex items-center justify-center p-1.5">
+            <img src={CHLogo} alt="CH Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h3 className="font-bold text-base">{widgetConfig.displayName}</h3>
@@ -250,7 +251,7 @@ function ChatPanel({ isOpen = true, onClose, tenantId = 'ch', config = null }) {
         </div>
         <button
           onClick={onClose}
-          className="text-ch-black hover:bg-white/20 rounded-full p-1.5 transition-all duration-200"
+          className="text-ch-white hover:bg-white/20 rounded-full p-1.5 transition-all duration-200"
           aria-label="Close chat"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
