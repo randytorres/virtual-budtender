@@ -92,7 +92,6 @@ app.post('/recommend', async (req, res) => {
         product.isAvailableOnline === true
       );
 
-    console.log(`📦 Total cannabis products available: ${allCannabisProducts.length}`);
 
     // Try exact format match first
     let candidates = allCannabisProducts;
@@ -203,7 +202,8 @@ Respond in valid JSON format:
 {"message": "your message", "recommendations": [{"productNumber": 5, "reason": "why this fits"}]}`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',  // Cheaper and faster, supports JSON mode
+      model: 'gpt-5-mini',
+      service_tier: 'priority',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -271,7 +271,7 @@ app.post('/chat', async (req, res) => {
     }
     
     const tenantConfig = getTenantConfig(tenantId);
-    console.log(`💬 Chat message for ${tenantConfig.name}:`, message);
+    console.log(`💬 ${tenantConfig.name}: "${message}"`);
 
     // Get available products for context
     const snapshot = await db.collection('products')
@@ -286,14 +286,7 @@ app.post('/chat', async (req, res) => {
         product.isAvailableOnline === true
       );
 
-    console.log(`📦 Available products: ${allProducts.length}`);
-
-    // Get category breakdown from ALL products first
-    const allCategoryCount = {};
-    allProducts.forEach(p => {
-      allCategoryCount[p.category] = (allCategoryCount[p.category] || 0) + 1;
-    });
-    console.log(`📊 All categories:`, allCategoryCount);
+    console.log(`📦 ${allProducts.length} products available`);
 
     // Send ALL products to AI - no limits!
     // With GPT-4o-mini at $0.15/1M input tokens, even 100 products only costs ~$0.0015 per request
@@ -321,16 +314,6 @@ app.post('/chat', async (req, res) => {
       ...categorizedProducts.concentrate
     ].filter(Boolean);
 
-    console.log(`📦 Selected for AI: ${selectedProducts.length} products`);
-    console.log(`   Flower: ${categorizedProducts.flower.length}`);
-    console.log(`   Pre-rolls: ${categorizedProducts.preroll.length}`);
-    console.log(`   Vapes: ${categorizedProducts.vape.length}`);
-    console.log(`   Edibles: ${categorizedProducts.edible.length}`);
-    console.log(`   Concentrates: ${categorizedProducts.concentrate.length}`);
-
-
-
-    // Log first few product IDs for debugging
 
     // Create indexed product list - AI will return numbers instead of IDs (much more reliable!)
     const productListForContext = selectedProducts.map((p, idx) => {
@@ -356,9 +339,14 @@ app.post('/chat', async (req, res) => {
 
 CORE RULES:
 1. Be conversational, friendly, and helpful
-2. ASK 2-3 questions before recommending (experience level, format, budget, strain preference)
-3. Keep responses concise (2-3 sentences max)
-4. Review conversation history - don't repeat questions you've already asked
+2. If customer asks about SPECIFIC products (brand, category, or type) - ALWAYS SHOW THEM in recommendations
+3. Only ask questions for VAGUE requests like "help me relax" or "what do you recommend"
+4. Keep responses concise (2-3 sentences max)
+5. Review conversation history - don't repeat questions you've already asked
+
+CRITICAL - WHEN CUSTOMER ASKS FOR SPECIFIC PRODUCTS:
+If someone asks "do you have X vapes?" or "show me Y flower" - IMMEDIATELY return matching products!
+Do NOT just say "yes we have them" and ask follow-up questions. SHOW THE PRODUCTS!
 
 AVAILABLE PRODUCTS:
 ${productListForContext}
@@ -378,6 +366,14 @@ CRITICAL - PRODUCT NUMBERS AND INVENTORY:
 5. BE TRUTHFUL: If you don't have products matching their criteria, SAY SO
 6. DON'T HALLUCINATE: Never make up product numbers - use ONLY the numbers from 1 to ${selectedProducts.length}
 7. If NO products match: Ask if they want to adjust budget or try a different category
+
+BRAND SEARCH - CRITICAL:
+When a customer asks for a specific BRAND (e.g., "Advanced Cultivators", "ROVE", "Treeworks"):
+1. Search BOTH the "name:" field AND the "brand:" field in the product list
+2. Brand names can appear in either field - check BOTH!
+3. Example: "Advanced Cultivator | Honey Banana Zuava..." has brand:"Advanced Cultivators" - this IS an Advanced Cultivators product!
+4. If you find products matching the brand AND the requested category, RECOMMEND THEM
+5. NEVER say "we don't have" a brand's products without first searching the ENTIRE list
 
 EXAMPLES:
 
@@ -404,6 +400,18 @@ Response: {
   "message": "I can help with that! What's your experience level with cannabis?",
   "recommendations": [],
   "suggestedReplies": ["New to cannabis", "Casual user", "Regular user"]
+}
+
+Customer: "do you have any Advanced Cultivators vapes?"
+Search the product list for brand:"Advanced Cultivators" AND category:"Cartridges"
+Found: Product #X "Advanced Cultivator | Honey Banana..." brand:"Advanced Cultivators" category:"Cartridges"
+Response: {
+  "message": "Yes! We have 2 Advanced Cultivators live rosin vapes at $40 each. Both are .5g cartridges - great quality!",
+  "recommendations": [
+    {"productNumber": X, "reason": "Honey Banana Zuava - premium live rosin"},
+    {"productNumber": Y, "reason": "Skkrt Berry Zuava - another great live rosin option"}
+  ],
+  "suggestedReplies": ["Tell me more about these", "Show other vape brands", "What else does Advanced Cultivators make?"]
 }
 
 RESPONSE FORMAT (respond with valid JSON):
@@ -449,7 +457,8 @@ If you want to recommend products 5, 12, and 23 from the list:
 Message: "${message}"`;
 
       const classificationResponse = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
+        service_tier: 'priority',
         messages: [
           { role: 'system', content: 'Answer YES for cannabis-related messages, NO for completely unrelated topics. If uncertain, answer YES.' },
           { role: 'user', content: classificationPrompt }
@@ -469,17 +478,16 @@ Message: "${message}"`;
 
     // Generate AI response
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-mini',
+      service_tier: 'priority',
       messages: messages,
       response_format: { type: 'json_object' }
     });
 
     const llmResponse = JSON.parse(completion.choices[0].message.content);
 
-    // If there are recommendations, enrich them with product data
     let enrichedRecommendations = [];
     if (llmResponse.recommendations && llmResponse.recommendations.length > 0) {
-      console.log(`🎯 Enriching ${llmResponse.recommendations.length} recommendations`);
       // Quick validation: check if numbers are in valid range
       const invalidNumbers = llmResponse.recommendations.filter(rec => 
         !rec.productNumber || rec.productNumber < 1 || rec.productNumber > selectedProducts.length
