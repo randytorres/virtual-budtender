@@ -25,7 +25,6 @@ export function setupTenantEndpoints(app) {
       name: config.name,
       displayName: config.displayName,
       colors: config.colors,
-      menuUrl: config.menuUrl,
     });
   });
 

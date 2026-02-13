@@ -5,21 +5,32 @@ import admin from 'firebase-admin';
 import OpenAI from 'openai';
 import { getTenantConfig, tenantExists } from './tenantConfig.js';
 import { setupTenantEndpoints } from './tenantEndpoints.js';
+import glassClient from './glassClient.js';
 
 dotenv.config();
 
-// Initialize Firebase Admin
-const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-};
+// Optional Firebase Admin initialization (graceful if env vars are missing)
+const hasFirebaseConfig = Boolean(
+  process.env.FIREBASE_PROJECT_ID &&
+  process.env.FIREBASE_CLIENT_EMAIL &&
+  process.env.FIREBASE_PRIVATE_KEY
+);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+if (hasFirebaseConfig) {
+  try {
+    const serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    };
 
-const db = admin.firestore();
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } catch (error) {
+    console.warn('Firebase initialization skipped:', error.message);
+  }
+}
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -35,6 +46,63 @@ app.use(express.json());
 // Setup tenant-specific endpoints
 setupTenantEndpoints(app);
 
+const loggedSessions = new Set();
+
+function getSessionToken(req) {
+  return req.body?.sessionToken || req.headers['x-session-token'] || req.body?.sessionId || null;
+}
+
+function isAvailable(availability) {
+  if (typeof availability === 'boolean') return availability;
+  if (typeof availability === 'number') return availability > 0;
+  if (typeof availability === 'string') {
+    const value = availability.toLowerCase();
+    return !['out_of_stock', 'unavailable', 'false', '0', 'none'].includes(value);
+  }
+  return true;
+}
+
+function mapGlassProductToVB(product) {
+  const metadata = product?.metadata || {};
+
+  return {
+    id: product.id,
+    sku: product.sku,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    price: Number(product.latest_price) || 0,
+    thcPercent: typeof product.thc_percent === 'number' ? product.thc_percent : Number(product.thc_percent) || null,
+    cbdPercent: typeof product.cbd_percent === 'number' ? product.cbd_percent : Number(product.cbd_percent) || null,
+    strain: metadata.strain || metadata.strain_name || 'N/A',
+    type: product.strain_type || metadata.type || null,
+    imageUrl: metadata.image_url || metadata.imageUrl || null,
+    dutchieUrl: metadata.dutchie_url || metadata.product_url || null,
+    weightGrams: typeof product.weight_grams === 'number' ? product.weight_grams : Number(product.weight_grams) || null,
+    isCannabis: true,
+    inStock: isAvailable(product.availability) ? 1 : 0,
+    isAvailableOnline: isAvailable(product.availability),
+  };
+}
+
+function maybeLogSession(req, tenantId, tenantConfig) {
+  const sessionToken = getSessionToken(req);
+  if (!sessionToken || loggedSessions.has(sessionToken)) {
+    return sessionToken;
+  }
+
+  loggedSessions.add(sessionToken);
+  glassClient.logSession(
+    tenantId,
+    tenantConfig.glassOperatorId,
+    sessionToken,
+    req.body?.deviceType,
+    req.headers.referer || req.body?.referrer
+  );
+
+  return sessionToken;
+}
+
 /**
  * Health check endpoint
  */
@@ -47,8 +115,15 @@ app.get('/health', (req, res) => {
  */
 app.get('/products', async (req, res) => {
   try {
-    const snapshot = await db.collection('products').limit(50).get();
-    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const tenantId = req.query.tenantId || 'ch';
+    if (!tenantExists(tenantId)) {
+      return res.status(404).json({ error: `Unknown tenant: ${tenantId}` });
+    }
+
+    const tenantConfig = getTenantConfig(tenantId);
+    const items = await glassClient.fetchProducts(tenantConfig.glassOperatorId);
+    const products = items.map(mapGlassProductToVB).filter(product => product.isAvailableOnline).slice(0, 50);
+
     res.json({ products, count: products.length });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -60,6 +135,8 @@ app.get('/products', async (req, res) => {
  * Main recommendation endpoint
  */
 app.post('/recommend', async (req, res) => {
+  const requestStartedAt = Date.now();
+
   try {
     const { tenantId, answers } = req.body;
     
@@ -73,19 +150,12 @@ app.post('/recommend', async (req, res) => {
     }
     
     const tenantConfig = getTenantConfig(tenantId);
+    const sessionToken = maybeLogSession(req, tenantId, tenantConfig);
 
-    // Build Firestore query with tenant filter (simplified to avoid index requirements)
-    const query = db.collection('products')
-      .where('tenantId', '==', tenantId);
+    const items = await glassClient.fetchProducts(tenantConfig.glassOperatorId);
 
-    const snapshot = await query.get();
-    
-    // Filter in memory to avoid complex Firestore index
-    let allCannabisProducts = snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
+    let allCannabisProducts = items
+      .map(mapGlassProductToVB)
       .filter(product => 
         product.isCannabis === true &&
         product.inStock > 0 &&
@@ -240,6 +310,15 @@ Respond in valid JSON format:
       };
     }).filter(rec => rec !== null);
 
+    glassClient.logQuery(
+      sessionToken,
+      tenantId,
+      JSON.stringify(answers || {}),
+      'recommend',
+      enrichedRecommendations.map(rec => rec.product?.id).filter(Boolean),
+      Date.now() - requestStartedAt
+    );
+
     res.json({
       message: llmResponse.message,
       recommendations: enrichedRecommendations
@@ -258,6 +337,8 @@ Respond in valid JSON format:
  * Conversational AI endpoint
  */
 app.post('/chat', async (req, res) => {
+  const requestStartedAt = Date.now();
+
   try {
     const { tenantId, message, conversationHistory = [] } = req.body;
     
@@ -271,15 +352,14 @@ app.post('/chat', async (req, res) => {
     }
     
     const tenantConfig = getTenantConfig(tenantId);
+    const sessionToken = maybeLogSession(req, tenantId, tenantConfig);
     console.log(`💬 ${tenantConfig.name}: "${message}"`);
 
     // Get available products for context
-    const snapshot = await db.collection('products')
-      .where('tenantId', '==', tenantId)
-      .get();
+    const items = await glassClient.fetchProducts(tenantConfig.glassOperatorId);
 
-    const allProducts = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+    const allProducts = items
+      .map(mapGlassProductToVB)
       .filter(product => 
         product.isCannabis === true &&
         product.inStock > 0 &&
@@ -533,6 +613,15 @@ Message: "${message}"`;
       console.log(`✅ Successfully enriched ${enrichedRecommendations.length} recommendations`);
     }
 
+    glassClient.logQuery(
+      sessionToken,
+      tenantId,
+      message,
+      'chat',
+      enrichedRecommendations.map(rec => rec.product?.id).filter(Boolean),
+      Date.now() - requestStartedAt
+    );
+
     res.json({
       message: llmResponse.message,
       recommendations: enrichedRecommendations
@@ -555,4 +644,3 @@ app.listen(PORT, () => {
   console.log(`   POST /recommend`);
   console.log(`   POST /chat`);
 });
-

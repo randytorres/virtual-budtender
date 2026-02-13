@@ -16,7 +16,7 @@ export const tenantConfigs = {
       secondary: '#1a1a1a',
       background: '#FFFFFF',
     },
-    menuUrl: process.env.DUTCHIE_MENU_URL || 'https://graceful-rugelach-7224de.netlify.app/shop',
+    glassOperatorId: '7806c904-80e6-4501-92b8-892ef48c8706',
     systemPrompt: `You are the virtual budtender for Cannabis Healing, a premium dispensary. Your job is to recommend products from the inventory list provided.
 
 Rules:
@@ -46,7 +46,7 @@ Rules:
   //     secondary: '#212121',
   //     background: '#FFFFFF',
   //   },
-  //   menuUrl: 'https://example.com/menu',
+  //   glassOperatorId: 'operator-id',
   //   systemPrompt: '...',
   // },
 };
